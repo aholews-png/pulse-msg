@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
@@ -12,45 +12,42 @@ import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import './App.css';
 
-function App() {
-  const { isAuthenticated, token, initializeStore } = useAuthStore();
-  const [loading, setLoading] = useState(true);
+function PrivateRoute({ children }) {
+  const { isAuthenticated, initializeStore } = useAuthStore();
 
   useEffect(() => {
     initializeStore();
-    setLoading(false);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="pulse-logo">
-          <div className="pulse-circle"></div>
-          <span>Pulse</span>
-        </div>
-      </div>
-    );
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
   }
+
+  return children;
+}
+
+function App() {
+  const { isAuthenticated } = useAuthStore();
 
   return (
     <Router>
       <Routes>
-        {!isAuthenticated ? (
-          <>
-            <Route path="/" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="*" element={<LoginPage />} />
-          </>
-        ) : (
-          <Route element={<Layout />}>
-            <Route path="/" element={<ChatListPage />} />
-            <Route path="/chat/:chatId" element={<ChatPage />} />
-            <Route path="/contacts" element={<ContactsPage />} />
-            <Route path="/calls" element={<CallsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-          </Route>
-        )}
+        <Route path="/" element={isAuthenticated ? <Navigate to="/chat" /> : <LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          element={
+            <PrivateRoute>
+              <Layout />
+            </PrivateRoute>
+          }
+        >
+          <Route path="/chat" element={<ChatListPage />} />
+          <Route path="/chat/:chatId" element={<ChatPage />} />
+          <Route path="/contacts" element={<ContactsPage />} />
+          <Route path="/calls" element={<CallsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+        </Route>
       </Routes>
     </Router>
   );
